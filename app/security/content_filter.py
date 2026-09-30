@@ -8,7 +8,7 @@ TRUNCATION_NOTICE = "\n[truncated]"
 
 # Heuristic only: used to flag and trace, never as the sole protection.
 _INJECTION_PATTERNS = re.compile(
-    r"(ignore|disregard|forget)\s+((all|any|the|your|these|those)\s+)*"
+    r"(ignore|disregard|forget)\s+((all|any|of|the|your|these|those)\s+)*"
     r"(previous|prior|above|earlier|system)\s+(instructions|prompts?|rules)"
     r"|(reveal|print|show|repeat)\s+((the|your)\s+)?system\s+prompt",
     re.IGNORECASE,
