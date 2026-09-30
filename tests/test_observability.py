@@ -15,6 +15,7 @@ from app.domain.errors import LLMError
 from app.domain.models import Usage
 from app.observability.cost_tracker import estimate_cost_usd
 from app.observability.otel import otlp_target
+from app.observability.tracer import MAX_PAYLOAD_CHARS, PAYLOAD_TRUNCATED, span_payload
 from tests.conftest import ServiceFactory
 
 EXPORTER = InMemorySpanExporter()
@@ -54,6 +55,43 @@ async def test_a_run_produces_one_trace_with_llm_and_tool_spans(
     root = next(span for span in finished if span.name == "agent.run")
     assert root.attributes is not None
     assert root.attributes["agent.status"] == "completed"
+
+
+async def test_spans_carry_what_went_in_and_what_came_out(
+    make_service: ServiceFactory, spans: InMemorySpanExporter
+) -> None:
+    service = make_service([call_tool("calculator", operation="add", a=2, b=3), say("It is 5")])
+
+    await service.answer("2 + 3?")
+
+    by_name = {span.name: dict(span.attributes or {}) for span in spans.get_finished_spans()}
+    assert by_name["agent.run"]["input.value"] == "2 + 3?"
+    assert by_name["agent.run"]["output.value"] == "It is 5"
+    tool_input = json.loads(str(by_name["execute_tool calculator"]["input.value"]))
+    assert tool_input == {"operation": "add", "a": 2, "b": 3}
+    assert "5" in str(by_name["execute_tool calculator"]["output.value"])
+    assert "It is 5" in str(by_name["llm.call"]["output.value"])
+
+
+async def test_secrets_never_reach_a_span(
+    make_service: ServiceFactory, spans: InMemorySpanExporter
+) -> None:
+    leaked = "sk-abcdefghijklmnop1234"
+    service = make_service([call_tool("lookup", api_key=leaked), say(f"key: {leaked}")])
+
+    await service.answer("hi")
+
+    recorded = json.dumps(
+        [dict(span.attributes or {}) for span in spans.get_finished_spans()], default=str
+    )
+    assert leaked not in recorded
+
+
+def test_span_payloads_are_bounded() -> None:
+    payload = span_payload("x" * (MAX_PAYLOAD_CHARS + 500))
+
+    assert len(payload) == MAX_PAYLOAD_CHARS + len(PAYLOAD_TRUNCATED)
+    assert payload.endswith(PAYLOAD_TRUNCATED)
 
 
 def test_tracing_is_off_by_default() -> None:

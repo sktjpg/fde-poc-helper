@@ -31,6 +31,13 @@ SENSITIVE_WORDS = frozenset(
 )
 SENSITIVE_SUFFIXES = ("api_key", "access_key", "private_key")
 
+# What went into and came out of a span. These two names are read by Langfuse, Phoenix
+# and other LLM tracing backends, so the payload shows up without vendor-specific code.
+INPUT_ATTRIBUTE = "input.value"
+OUTPUT_ATTRIBUTE = "output.value"
+MAX_PAYLOAD_CHARS = 4000
+PAYLOAD_TRUNCATED = "...[truncated]"
+
 _tracer = trace.get_tracer("app")
 
 
@@ -59,6 +66,23 @@ def redact(value: Any) -> Any:
     if isinstance(value, str):
         return filter_output(value)
     return value
+
+
+def span_payload(value: Any) -> str:
+    """Text for a span input or output: redacted and bounded.
+
+    Spans leave the process and are stored by the tracing backend, so they get the same
+    masking as the log and a size limit.
+    """
+    cleaned = redact(value)
+    text = (
+        cleaned
+        if isinstance(cleaned, str)
+        else json.dumps(cleaned, default=str, ensure_ascii=False)
+    )
+    if len(text) <= MAX_PAYLOAD_CHARS:
+        return text
+    return text[:MAX_PAYLOAD_CHARS] + PAYLOAD_TRUNCATED
 
 
 def configure_logging(level: int = logging.INFO) -> None:

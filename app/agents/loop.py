@@ -24,7 +24,15 @@ from app.domain.models import (
 )
 from app.domain.ports import LLMClient
 from app.observability.cost_tracker import estimate_cost_usd
-from app.observability.tracer import SpanAttributes, current_trace_id, log_event, start_span
+from app.observability.tracer import (
+    INPUT_ATTRIBUTE,
+    OUTPUT_ATTRIBUTE,
+    SpanAttributes,
+    current_trace_id,
+    log_event,
+    span_payload,
+    start_span,
+)
 from app.prompts.templates import PromptTemplate
 from app.security.content_filter import filter_untrusted
 
@@ -69,7 +77,11 @@ async def run_agent(
     prompt: PromptTemplate,
     max_steps: int,
 ) -> AgentResult:
-    with start_span("agent.run", {"agent.prompt": prompt.id}) as span:
+    attributes: SpanAttributes = {
+        "agent.prompt": prompt.id,
+        INPUT_ATTRIBUTE: span_payload(user_input),
+    }
+    with start_span("agent.run", attributes) as span:
         run = _Run(
             trace_id=current_trace_id(),
             prompt_id=prompt.id,
@@ -83,7 +95,13 @@ async def run_agent(
                 logger, run.trace_id, "agent_failed", error=type(exc).__name__, detail=str(exc)
             )
             raise
-        span.set_attributes({"agent.status": result.status, "agent.steps": result.steps})
+        span.set_attributes(
+            {
+                "agent.status": result.status,
+                "agent.steps": result.steps,
+                OUTPUT_ATTRIBUTE: span_payload(result.answer),
+            }
+        )
         log_event(
             logger,
             result.trace_id,
@@ -142,17 +160,17 @@ async def _call_llm(
     run: _Run, llm: LLMClient, tools: ToolRegistry, system_prompt: str, step: int
 ) -> LLMResponse:
     started = time.perf_counter()
-    with start_span("llm.call", {"gen_ai.operation.name": "chat", "agent.step": step}) as span:
+    attributes: SpanAttributes = {
+        "gen_ai.operation.name": "chat",
+        "agent.step": step,
+        # Only what is new at this step; earlier messages are on the earlier spans.
+        INPUT_ATTRIBUTE: span_payload(run.messages[-1].model_dump(exclude_defaults=True)),
+    }
+    with start_span("llm.call", attributes) as span:
         response = await llm.complete(
             system=system_prompt, messages=run.messages, tools=tools.specs()
         )
-        span.set_attributes(
-            {
-                "gen_ai.response.model": response.model,
-                "gen_ai.usage.input_tokens": response.usage.input_tokens,
-                "gen_ai.usage.output_tokens": response.usage.output_tokens,
-            }
-        )
+        span.set_attributes(_response_attributes(response))
     log_event(
         logger,
         run.trace_id,
@@ -175,12 +193,19 @@ async def _execute(
     attributes: SpanAttributes = {
         "gen_ai.operation.name": "execute_tool",
         "gen_ai.tool.name": call.name,
+        INPUT_ATTRIBUTE: span_payload(call.arguments),
     }
     with start_span(f"execute_tool {call.name}", attributes) as span:
         raw = await tools.execute(call)
         # Tool output is untrusted data: bound its size and flag injection attempts.
         filtered = filter_untrusted(raw.content)
-        span.set_attributes({"tool.is_error": raw.is_error, "tool.suspicious": filtered.suspicious})
+        span.set_attributes(
+            {
+                "tool.is_error": raw.is_error,
+                "tool.suspicious": filtered.suspicious,
+                OUTPUT_ATTRIBUTE: span_payload(filtered.text),
+            }
+        )
     record = ToolCallRecord(
         step=step,
         name=call.name,
@@ -197,6 +222,19 @@ async def _execute(
         truncated=filtered.truncated,
     )
     return raw.model_copy(update={"content": filtered.text}), record
+
+
+def _response_attributes(response: LLMResponse) -> SpanAttributes:
+    attributes: SpanAttributes = {
+        "gen_ai.response.model": response.model,
+        "gen_ai.usage.input_tokens": response.usage.input_tokens,
+        "gen_ai.usage.output_tokens": response.usage.output_tokens,
+        OUTPUT_ATTRIBUTE: span_payload(response.message.model_dump(exclude_defaults=True)),
+    }
+    cost = estimate_cost_usd(response.model, response.usage)
+    if cost is not None:
+        attributes["gen_ai.usage.cost"] = cost
+    return attributes
 
 
 def _signature(call: ToolCall) -> str:
