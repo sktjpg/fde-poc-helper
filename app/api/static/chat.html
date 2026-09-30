@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Agent demo</title>
+<style>
+  :root {
+    --bg: #f6f7f9; --panel: #ffffff; --line: #d9dde3; --text: #1b1f24; --muted: #667085;
+    --accent: #2f5fd0; --user: #e7eefc; --ok: #1a7f4b; --warn: #a15c00; --bad: #b42318;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14171b; --panel: #1c2026; --line: #2e343c; --text: #e6e9ee; --muted: #98a2b3;
+      --accent: #7aa2ff; --user: #24324f; --ok: #5fd39a; --warn: #f0b35a; --bad: #ff8a80;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; height: 100vh; display: grid; grid-template-columns: 1fr 1fr;
+    background: var(--bg); color: var(--text);
+    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  section { display: flex; flex-direction: column; min-height: 0; padding: 16px; }
+  section + section { border-left: 1px solid var(--line); }
+  h1 { margin: 0 0 12px; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+  .scroll { flex: 1; overflow-y: auto; min-height: 0; }
+  .msg { max-width: 85%; margin: 0 0 10px; padding: 8px 12px; border-radius: 10px; white-space: pre-wrap; overflow-wrap: anywhere; }
+  .msg.user { margin-left: auto; background: var(--user); }
+  .msg.agent { background: var(--panel); border: 1px solid var(--line); cursor: pointer; }
+  .msg.agent.selected { border-color: var(--accent); }
+  .msg.error { background: var(--panel); border: 1px solid var(--bad); color: var(--bad); }
+  form { display: flex; gap: 8px; margin-top: 12px; }
+  input, button { font: inherit; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--line); }
+  input { flex: 1; background: var(--panel); color: var(--text); }
+  button { background: var(--accent); color: #fff; border-color: var(--accent); cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  .facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 8px; margin-bottom: 14px; }
+  .fact { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
+  .fact span { display: block; font-size: 12px; color: var(--muted); }
+  .fact b { font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+  .completed { color: var(--ok); } .max_steps, .stalled { color: var(--warn); } .failed { color: var(--bad); }
+  .call { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; }
+  .call.failed { border-color: var(--bad); }
+  .call header { display: flex; justify-content: space-between; gap: 8px; }
+  .call small, .hint { color: var(--muted); }
+  pre { margin: 6px 0 0; font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; overflow-wrap: anywhere; }
+  @media (max-width: 760px) {
+    body { grid-template-columns: 1fr; height: auto; }
+    section + section { border-left: 0; border-top: 1px solid var(--line); }
+  }
+</style>
+</head>
+<body>
+<section>
+  <h1>Conversation</h1>
+  <div id="messages" class="scroll"></div>
+  <form id="form">
+    <input id="input" autocomplete="off" placeholder="Ask the agent…" aria-label="Message" required>
+    <button id="send">Send</button>
+  </form>
+</section>
+<section>
+  <h1>What the agent did</h1>
+  <div id="trace" class="scroll"><p class="hint">Send a message, or click an answer, to see its steps, tool calls, tokens and cost.</p></div>
+</section>
+<script>
+  const messages = document.getElementById("messages");
+  const trace = document.getElementById("trace");
+  const form = document.getElementById("form");
+  const input = document.getElementById("input");
+  const send = document.getElementById("send");
+
+  // Everything from the server is written with textContent, never as HTML.
+  function el(tag, className, text) {
+    const node = document.createElement(tag);
+    if (className) node.className = className;
+    if (text !== undefined) node.textContent = text;
+    return node;
+  }
+
+  function addMessage(kind, text) {
+    const node = el("div", "msg " + kind, text);
+    messages.append(node);
+    messages.scrollTop = messages.scrollHeight;
+    return node;
+  }
+
+  function fact(label, value, className) {
+    const node = el("div", "fact");
+    node.append(el("span", "", label), el("b", className || "", String(value)));
+    return node;
+  }
+
+  function showTrace(result, node) {
+    document.querySelectorAll(".msg.selected").forEach((m) => m.classList.remove("selected"));
+    node.classList.add("selected");
+
+    const facts = el("div", "facts");
+    facts.append(
+      fact("Status", result.status, result.status),
+      fact("Steps", result.steps),
+      fact("Tool calls", result.tool_calls.length),
+      fact("Tokens in / out", result.usage.input_tokens + " / " + result.usage.output_tokens),
+      fact("Cost", result.cost_usd === null ? "n/a" : "$" + result.cost_usd.toFixed(4)),
+      fact("Prompt version", result.prompt_version),
+      fact("Trace id", result.trace_id),
+    );
+
+    trace.replaceChildren(facts);
+    if (result.tool_calls.length === 0) {
+      trace.append(el("p", "hint", "No tools were called: the model answered directly."));
+    }
+    for (const call of result.tool_calls) {
+      const card = el("div", "call" + (call.is_error ? " failed" : ""));
+      const header = el("header");
+      header.append(
+        el("b", "", "Step " + call.step + " · " + call.name + (call.is_error ? " · error" : "")),
+        el("small", "", call.latency_ms.toFixed(0) + " ms"),
+      );
+      card.append(header, el("pre", "", JSON.stringify(call.arguments, null, 2)));
+      trace.append(card);
+    }
+  }
+
+  form.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const text = input.value.trim();
+    if (!text) return;
+    addMessage("user", text);
+    input.value = "";
+    send.disabled = true;
+    try {
+      const response = await fetch("/agent/run", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ input: text }),
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        addMessage("error", body.error || "Request failed (" + response.status + ")");
+        return;
+      }
+      const node = addMessage("agent", body.answer);
+      node.addEventListener("click", () => showTrace(body, node));
+      showTrace(body, node);
+    } catch (error) {
+      addMessage("error", "Could not reach the API: " + error.message);
+    } finally {
+      send.disabled = false;
+      input.focus();
+    }
+  });
+</script>
+</body>
+</html>

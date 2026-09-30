@@ -8,7 +8,8 @@ guards, tracing, cost tracking and an offline evaluation harness.
 ```bash
 make check    # ruff + mypy (strict) + pytest: run before saying anything works
 make test     # pytest only
-make run      # uvicorn app.main:app --reload  (http://localhost:8000/docs)
+make run      # uvicorn app.main:app --reload  (chat + trace panel at http://localhost:8000,
+              # Swagger at /docs; the JSON event log prints in this terminal)
 make eval     # golden dataset against the real model (see "Model access")
 uv add <pkg>  # add a dependency
 ```

@@ -22,6 +22,20 @@ def test_health(client: TestClient) -> None:
     assert client.get("/health").json() == {"status": "ok"}
 
 
+def test_chat_page_is_served_and_calls_the_agent_endpoint(client: TestClient) -> None:
+    response = client.get("/")
+
+    assert response.status_code == 200
+    assert response.headers["content-type"].startswith("text/html")
+    assert 'fetch("/agent/run"' in response.text
+
+
+def test_chat_page_never_renders_server_content_as_html(client: TestClient) -> None:
+    page = client.get("/").text
+
+    assert "innerHTML" not in page
+
+
 def test_agent_run_returns_structured_result(
     client: TestClient, make_service: ServiceFactory
 ) -> None:
