@@ -1,0 +1,15 @@
+# Code style
+
+- Python 3.12 syntax: `X | None`, built-in generics, `match`, PEP 695 type parameters.
+- Every function signature is fully typed. `mypy --strict` passes with no new `type: ignore`
+  unless a comment on the same line says why.
+- Data is immutable: `ConfigDict(frozen=True)` on Pydantic models, `@dataclass(frozen=True)`
+  elsewhere, tuples instead of lists in models. Produce new values; do not mutate arguments.
+- Functions stay under about 50 lines and do one thing. Extract a helper rather than nest
+  beyond three levels.
+- Named constants instead of magic numbers and strings.
+- Comments explain why, not what. No commented-out code.
+- `logging` for diagnostics; `print` only in command-line entry points.
+- Errors are explicit: raise a domain error with a message that is safe to show; never
+  `except Exception: pass`.
+- `ruff format` decides formatting. Line length 100.

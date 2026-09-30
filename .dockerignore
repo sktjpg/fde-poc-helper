@@ -1,0 +1,12 @@
+.venv
+.git
+.env
+.claude
+brief
+docs
+tests
+__pycache__
+.mypy_cache
+.pytest_cache
+.ruff_cache
+app/evaluation/eval_results

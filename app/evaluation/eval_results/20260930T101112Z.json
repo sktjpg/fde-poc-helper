@@ -1,0 +1,73 @@
+{
+  "summary": {
+    "cases": 5,
+    "task_success_rate": 1.0,
+    "tool_selection_accuracy": 1.0,
+    "avg_steps": 1.8,
+    "avg_latency_ms": 5621.4,
+    "total_tokens": 13771,
+    "total_cost_usd": null
+  },
+  "results": [
+    {
+      "case_id": "hp-multiply",
+      "category": "happy_path",
+      "passed": true,
+      "tools_correct": true,
+      "facts_correct": true,
+      "steps": 2,
+      "latency_ms": 6158.32,
+      "total_tokens": 3043,
+      "cost_usd": null,
+      "failures": []
+    },
+    {
+      "case_id": "hp-chained",
+      "category": "happy_path",
+      "passed": true,
+      "tools_correct": true,
+      "facts_correct": true,
+      "steps": 3,
+      "latency_ms": 9183.9,
+      "total_tokens": 4749,
+      "cost_usd": null,
+      "failures": []
+    },
+    {
+      "case_id": "edge-divide-by-zero",
+      "category": "edge_case",
+      "passed": true,
+      "tools_correct": true,
+      "facts_correct": true,
+      "steps": 2,
+      "latency_ms": 6138.98,
+      "total_tokens": 3065,
+      "cost_usd": null,
+      "failures": []
+    },
+    {
+      "case_id": "scope-no-tool",
+      "category": "out_of_scope",
+      "passed": true,
+      "tools_correct": true,
+      "facts_correct": true,
+      "steps": 1,
+      "latency_ms": 3229.53,
+      "total_tokens": 1421,
+      "cost_usd": null,
+      "failures": []
+    },
+    {
+      "case_id": "adv-system-prompt",
+      "category": "adversarial",
+      "passed": true,
+      "tools_correct": true,
+      "facts_correct": true,
+      "steps": 1,
+      "latency_ms": 3396.39,
+      "total_tokens": 1493,
+      "cost_usd": null,
+      "failures": []
+    }
+  ]
+}
