@@ -4,6 +4,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 from app.adapters.llm.claude_code_llm import ClaudeCodeLLM
+from app.adapters.llm.openai_compatible_llm import OpenAICompatibleLLM
 from app.adapters.llm.scripted_llm import call_tool, say
 from app.config import Settings
 from app.dependencies import get_agent_service, get_llm
@@ -95,6 +96,33 @@ def test_claude_code_provider_is_selected_by_configuration(
     get_llm.cache_clear()
 
     assert isinstance(get_llm(), ClaudeCodeLLM)
+    get_llm.cache_clear()
+
+
+def test_openai_compatible_provider_is_selected_by_configuration(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    settings = Settings(
+        _env_file=None, llm_provider="openai_compatible", llm_base_url="http://llm.test/v1"
+    )
+    monkeypatch.setattr("app.dependencies.get_settings", lambda: settings)
+    get_llm.cache_clear()
+
+    assert isinstance(get_llm(), OpenAICompatibleLLM)
+    get_llm.cache_clear()
+
+
+def test_openai_compatible_provider_without_a_base_url_fails_clearly(
+    client: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    settings = Settings(_env_file=None, llm_provider="openai_compatible")
+    monkeypatch.setattr("app.dependencies.get_settings", lambda: settings)
+    get_llm.cache_clear()
+
+    response = client.post("/agent/run", json={"input": "hi"})
+
+    assert response.status_code == 502
+    assert "LLM_BASE_URL" in response.json()["error"]
     get_llm.cache_clear()
 
 

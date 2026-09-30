@@ -52,6 +52,8 @@ class LLMResponse(Frozen):
     message: Message
     usage: Usage = Usage()
     model: str = ""
+    # Set by an adapter that knows what the call cost; otherwise estimated from a price table.
+    cost_usd: float | None = None
 
 
 AgentStatus = Literal["completed", "max_steps", "stalled"]

@@ -39,14 +39,16 @@ up:
 	curl -fsS -o /dev/null "$$LANGFUSE_HOST/api/public/health" && \
 	printf '\nLangfuse: %s  (login %s / %s)\n' "$$LANGFUSE_HOST" "$$LANGFUSE_USER_EMAIL" "$$LANGFUSE_USER_PASSWORD"
 
-# A remote stack publishes Langfuse on that machine's loopback only; this forwards the same
-# port here over SSH, so it is http://localhost:<port> on both sides. No-op for a local
-# stack or when the tunnel is already open.
+# A remote stack publishes nothing to the network; this forwards its ports here over SSH
+# (TUNNEL_FORWARDS, each "local_port:remote_host:remote_port"), so Langfuse and a model
+# server on that machine are http://localhost:<port> here. No-op for a local stack or
+# when the tunnel is already open.
 tunnel:
 	@$(LOAD_STACK_ENV) && if [ -n "$$SSH_TUNNEL" ] && \
 		! ssh -S $(TUNNEL_SOCKET) -O check "$$SSH_TUNNEL" 2>/dev/null; then \
+		set --; for forward in $$TUNNEL_FORWARDS; do set -- "$$@" -L "$$forward"; done; \
 		ssh -f -N -M -S $(TUNNEL_SOCKET) -o ExitOnForwardFailure=yes -o ServerAliveInterval=30 \
-			-L "$$LANGFUSE_PORT:127.0.0.1:$$LANGFUSE_PORT" "$$SSH_TUNNEL"; \
+			"$$@" "$$SSH_TUNNEL"; \
 	fi
 
 # The API on this machine (so LLM_PROVIDER=claude_code works), tracing to the stack's Langfuse.

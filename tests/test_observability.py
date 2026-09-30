@@ -134,6 +134,16 @@ def test_cost_uses_the_price_table() -> None:
     assert estimate_cost_usd("unknown-model", usage) is None
 
 
+async def test_a_cost_reported_by_the_adapter_wins_over_the_price_table(
+    make_service: ServiceFactory,
+) -> None:
+    reply = say("hi").model_copy(update={"cost_usd": 0.25})
+
+    result = await make_service([reply]).answer("hello")
+
+    assert result.cost_usd == 0.25
+
+
 def test_otlp_headers_are_percent_decoded_and_the_path_is_not_doubled() -> None:
     settings = Settings(
         _env_file=None,

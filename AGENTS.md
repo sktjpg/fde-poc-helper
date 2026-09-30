@@ -27,6 +27,9 @@ committed) and add `STACK=<name>` to the targets, e.g. `make dev STACK=gmktec`.
 Model access: `LLM_PROVIDER=anthropic` (default) calls the API and needs
 `ANTHROPIC_API_KEY`. `LLM_PROVIDER=claude_code` runs the local Claude Code CLI headless and
 uses this machine's Claude Code login, for development and demos without an API key.
+`LLM_PROVIDER=openai_compatible` calls any server with the OpenAI chat-completions API at
+`LLM_BASE_URL` (a self-hosted model on Ollama or vLLM, or a hosted gateway); its cost comes
+from `LLM_INPUT_PRICE_PER_MTOK` and `LLM_OUTPUT_PRICE_PER_MTOK` when both are set.
 
 Configuration comes from environment variables or `.env` (see `.env.example`). Never read,
 print or commit `.env`.
@@ -44,7 +47,8 @@ app/
     tools/           Typed tools + the registry that validates and executes them
   prompts/           Versioned prompt templates + registry
   security/          input_guard, content_filter, output_filter
-  adapters/          Outbound adapters: LLM providers (API, Claude Code CLI, scripted fake),
+  adapters/          Outbound adapters: LLM providers (API, Claude Code CLI, OpenAI-compatible,
+                     scripted fake),
                      databases, HTTP clients
   api/               Inbound adapter: routes and request/response schemas
   evaluation/        Golden dataset, offline eval runner, eval_results/ history

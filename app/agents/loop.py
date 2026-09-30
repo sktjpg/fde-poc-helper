@@ -122,7 +122,7 @@ async def _loop(
             run,
             messages=(*run.messages, response.message),
             usage=run.usage + response.usage,
-            call_costs=(*run.call_costs, estimate_cost_usd(response.model, response.usage)),
+            call_costs=(*run.call_costs, _call_cost(response)),
         )
         calls = response.message.tool_calls
         if not calls:
@@ -231,10 +231,17 @@ def _response_attributes(response: LLMResponse) -> SpanAttributes:
         "gen_ai.usage.output_tokens": response.usage.output_tokens,
         OUTPUT_ATTRIBUTE: span_payload(response.message.model_dump(exclude_defaults=True)),
     }
-    cost = estimate_cost_usd(response.model, response.usage)
+    cost = _call_cost(response)
     if cost is not None:
         attributes["gen_ai.usage.cost"] = cost
     return attributes
+
+
+def _call_cost(response: LLMResponse) -> float | None:
+    """What the adapter reported, else the price table, else unknown."""
+    if response.cost_usd is not None:
+        return response.cost_usd
+    return estimate_cost_usd(response.model, response.usage)
 
 
 def _signature(call: ToolCall) -> str:

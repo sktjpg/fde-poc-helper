@@ -24,8 +24,10 @@ PRICES: dict[str, ModelPrice] = {
 def estimate_cost_usd(model: str, usage: Usage) -> float | None:
     """Cost of one call, or None when the model has no known price (never guess)."""
     price = PRICES.get(model)
-    if price is None:
-        return None
+    return None if price is None else cost_usd(price, usage)
+
+
+def cost_usd(price: ModelPrice, usage: Usage) -> float:
     cost = (
         usage.input_tokens * price.input_per_mtok + usage.output_tokens * price.output_per_mtok
     ) / TOKENS_PER_MTOK

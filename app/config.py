@@ -14,8 +14,16 @@ class Settings(BaseSettings):
 
     # "anthropic": the API, needs ANTHROPIC_API_KEY. "claude_code": the local Claude Code CLI
     # in headless mode, which uses this machine's Claude Code login (development and demos).
-    llm_provider: Literal["anthropic", "claude_code"] = "anthropic"
+    # "openai_compatible": any server with the OpenAI chat-completions API at LLM_BASE_URL,
+    # e.g. a self-hosted model on Ollama (http://host:11434/v1).
+    llm_provider: Literal["anthropic", "claude_code", "openai_compatible"] = "anthropic"
     anthropic_api_key: SecretStr | None = None
+    llm_base_url: str | None = None
+    llm_api_key: SecretStr | None = None
+    # USD per million tokens for the openai_compatible model. A self-hosted model has no
+    # bill per token: leave both unset for "unknown", or set them to what you want to track.
+    llm_input_price_per_mtok: float | None = Field(default=None, ge=0)
+    llm_output_price_per_mtok: float | None = Field(default=None, ge=0)
     llm_model: str = "claude-opus-5-5"
     llm_max_tokens: int = Field(default=16000, gt=0)
     llm_timeout_seconds: float = Field(default=60.0, gt=0)
