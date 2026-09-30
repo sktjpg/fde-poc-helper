@@ -11,7 +11,7 @@ from fastapi.responses import JSONResponse
 from app.api.routes import router
 from app.config import get_settings
 from app.domain.errors import InputRejectedError, LLMError
-from app.observability.otel import configure_tracing
+from app.observability.otel import configure_telemetry
 from app.observability.tracer import configure_logging
 
 logger = logging.getLogger(__name__)
@@ -20,10 +20,9 @@ logger = logging.getLogger(__name__)
 @asynccontextmanager
 async def lifespan(application: FastAPI) -> AsyncIterator[None]:
     configure_logging()
-    provider = configure_tracing(get_settings())
+    telemetry = configure_telemetry(get_settings())
     yield
-    if provider is not None:
-        provider.shutdown()  # flush spans still in the batch queue
+    telemetry.shutdown()  # flush spans, metrics and logs still in the batch queues
 
 
 def create_app() -> FastAPI:

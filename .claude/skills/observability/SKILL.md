@@ -1,6 +1,6 @@
 ---
 name: observability
-description: "Tracing, logging and cost tracking for LLM and agent executions in this codebase - OpenTelemetry spans, exporting to Langfuse or any OTLP backend, the JSON event log, per-run cost. Use when adding a new stage, tool or model call that should be traced, when asked how to debug an agent run, when integrating Langfuse or OpenTelemetry, or when asked about cost or latency."
+description: "Tracing, metrics, logging and cost tracking for LLM and agent executions in this codebase - OpenTelemetry traces, metrics and logs, exporting to Langfuse and any OTLP backend (Grafana LGTM in docker-compose), the JSON event log, per-run cost. Use when adding a new stage, tool or model call that should be traced, when asked how to debug an agent run, when integrating Langfuse or OpenTelemetry, or when asked about cost or latency."
 ---
 
 # Observability
@@ -18,17 +18,28 @@ Goal: for any run, answer "what exactly happened?" from the `trace_id` alone.
     sensitive keys are redacted and credential-shaped strings are masked wherever they
     appear.
   - `configure_logging()`: called at startup so these events reach stderr.
-- `app/observability/otel.py`: `configure_tracing(settings)` sets up an OTLP/HTTP exporter
-  at startup (FastAPI lifespan) when configured, and flushes on shutdown.
+  - `span_payload(value)`: redacted, size-capped text for a span's `input.value` and
+    `output.value`, which Langfuse and other LLM backends display.
+- `app/observability/metrics.py`: counters and histograms through the OpenTelemetry
+  metrics API (`agent.runs` by status, `agent.failures`, `agent.run.duration`,
+  `agent.run.steps`, `agent.cost`, `gen_ai.client.token.usage`,
+  `gen_ai.client.operation.duration`, `agent.tool.calls`, `agent.tool.duration`), recorded
+  by the agent loop. No-ops until a MeterProvider is configured.
+- `app/observability/otel.py`: `configure_telemetry(settings)` at startup (FastAPI
+  lifespan) sets up whatever is configured and flushes it on shutdown: traces to Langfuse
+  and to the OTLP endpoint (both when both are set), metrics and logs to the OTLP endpoint.
+  `OtelLogHandler` sends the `app` log lines as OpenTelemetry log records linked to the
+  active span.
 - `app/observability/cost_tracker.py`: price table and `estimate_cost_usd`. Unknown model
   means cost `None`, never a guess.
 
 A run produces this span tree:
 
 ```
-agent.run                      agent.prompt, agent.status, agent.steps
-  llm.call                     gen_ai.response.model, gen_ai.usage.input_tokens/output_tokens
-  execute_tool <name>          gen_ai.tool.name, tool.is_error, tool.suspicious
+agent.run                      agent.prompt, agent.status, agent.steps, input/output
+  llm.call                     gen_ai.response.model, gen_ai.usage.*_tokens, gen_ai.usage.cost,
+                               the new input message and the model output
+  execute_tool <name>          gen_ai.tool.name, tool.is_error, tool.suspicious, arguments/result
   llm.call
 ```
 
@@ -39,15 +50,15 @@ understand them can show model and token usage. Coverage is partial: add
 
 ## Turning export on
 
-In `.env`, either:
+`make dev` (see AGENTS.md) starts a local stack and sets all of this. By hand, in `.env`:
 
 ```bash
-# Langfuse (takes precedence). It ingests OTLP at <host>/api/public/otel
+# Langfuse: LLM view of the traces. It ingests OTLP at <host>/api/public/otel
 LANGFUSE_PUBLIC_KEY=pk-lf-...
 LANGFUSE_SECRET_KEY=sk-lf-...
 LANGFUSE_HOST=https://cloud.langfuse.com
 
-# or any OpenTelemetry collector / vendor
+# and/or any OpenTelemetry collector or vendor: traces, metrics and logs
 OTLP_ENDPOINT=http://localhost:4318
 OTLP_HEADERS=key=value,key2=value2
 ```
@@ -73,17 +84,22 @@ log_event(logger, trace_id, "retrieval", k=k, returned=len(chunks), latency_ms=e
 
 - Span per unit of work that can be slow or fail: model call, tool call, retrieval, external
   request. Not per function.
-- Attributes are small scalars: ids, counts, model, status. Not documents or full prompts.
-- Never put secrets or personal data in attributes. Tool arguments go through `log_event`,
-  which redacts; do not copy them onto spans unfiltered.
+- Attributes are small scalars: ids, counts, model, status. Payloads (inputs, outputs,
+  arguments) only through `span_payload`, which redacts and caps them.
+- Metric attributes stay low-cardinality (status, model, tool name, error type): never user
+  input, ids or free text. Add a recorder to `metrics.py` for a new stage worth alerting on.
 - Record failures on the span and re-raise: `span.record_exception(exc)`.
 - New model: add its price to `PRICES` in `cost_tracker.py`.
 
-Test with the in-memory exporter, as in `tests/test_observability.py`.
+Test with the in-memory exporters, as in `tests/test_observability.py` and
+`tests/test_metrics.py`.
 
-## Feedback and online monitoring
+## Dashboards, feedback and online monitoring
 
-Not implemented; the shape when asked:
+The Grafana in the compose stack provisions an "Agent" dashboard
+(`docker/grafana/agent-dashboard.json`): runs, failures, p95 duration, tokens, cost, tool
+errors, the event log (Loki) and recent traces (Tempo). Not implemented; the shape when
+asked:
 
 - Feedback: `POST /feedback {trace_id, score, comment}` stored against the trace id, so a
   thumbs-down leads straight to the run that caused it.
@@ -94,5 +110,6 @@ Not implemented; the shape when asked:
 ## What to say aloud
 
 "Every run has one trace with a span per model call and tool call, carrying tokens, latency
-and status, and the trace id goes back to the caller. It is plain OpenTelemetry, so the
-backend, Langfuse or anything OTLP, is configuration."
+and status, plus metrics for dashboards and alerts and log lines linked to the trace; the
+trace id goes back to the caller. It is plain OpenTelemetry, so the backend, Langfuse,
+Grafana or a vendor, is configuration."

@@ -24,6 +24,12 @@ from app.domain.models import (
 )
 from app.domain.ports import LLMClient
 from app.observability.cost_tracker import estimate_cost_usd
+from app.observability.metrics import (
+    record_llm_call,
+    record_run,
+    record_run_failure,
+    record_tool_call,
+)
 from app.observability.tracer import (
     INPUT_ATTRIBUTE,
     OUTPUT_ATTRIBUTE,
@@ -81,6 +87,7 @@ async def run_agent(
         "agent.prompt": prompt.id,
         INPUT_ATTRIBUTE: span_payload(user_input),
     }
+    started = time.perf_counter()
     with start_span("agent.run", attributes) as span:
         run = _Run(
             trace_id=current_trace_id(),
@@ -94,6 +101,7 @@ async def run_agent(
             log_event(
                 logger, run.trace_id, "agent_failed", error=type(exc).__name__, detail=str(exc)
             )
+            record_run_failure(error=type(exc).__name__)
             raise
         span.set_attributes(
             {
@@ -110,6 +118,7 @@ async def run_agent(
             steps=result.steps,
             cost_usd=result.cost_usd,
         )
+        record_run(status=result.status, steps=result.steps, duration_s=_elapsed_ms(started) / 1000)
         return result
 
 
@@ -171,17 +180,25 @@ async def _call_llm(
             system=system_prompt, messages=run.messages, tools=tools.specs()
         )
         span.set_attributes(_response_attributes(response))
-    log_event(
-        logger,
-        run.trace_id,
-        "llm_call",
-        step=step,
+        latency_ms = _elapsed_ms(started)
+        # Inside the span, so an exported log record is linked to it.
+        log_event(
+            logger,
+            run.trace_id,
+            "llm_call",
+            step=step,
+            model=response.model,
+            prompt=run.prompt_id,
+            latency_ms=latency_ms,
+            input_tokens=response.usage.input_tokens,
+            output_tokens=response.usage.output_tokens,
+            tool_calls=[call.name for call in response.message.tool_calls],
+        )
+    record_llm_call(
         model=response.model,
-        prompt=run.prompt_id,
-        latency_ms=_elapsed_ms(started),
-        input_tokens=response.usage.input_tokens,
-        output_tokens=response.usage.output_tokens,
-        tool_calls=[call.name for call in response.message.tool_calls],
+        usage=response.usage,
+        cost_usd=_call_cost(response),
+        duration_s=latency_ms / 1000,
     )
     return response
 
@@ -206,21 +223,22 @@ async def _execute(
                 OUTPUT_ATTRIBUTE: span_payload(filtered.text),
             }
         )
-    record = ToolCallRecord(
-        step=step,
-        name=call.name,
-        arguments=call.arguments,
-        is_error=raw.is_error,
-        latency_ms=_elapsed_ms(started),
-    )
-    log_event(
-        logger,
-        trace_id,
-        "tool_call",
-        **record.model_dump(),
-        suspicious=filtered.suspicious,
-        truncated=filtered.truncated,
-    )
+        record = ToolCallRecord(
+            step=step,
+            name=call.name,
+            arguments=call.arguments,
+            is_error=raw.is_error,
+            latency_ms=_elapsed_ms(started),
+        )
+        log_event(
+            logger,
+            trace_id,
+            "tool_call",
+            **record.model_dump(),
+            suspicious=filtered.suspicious,
+            truncated=filtered.truncated,
+        )
+    record_tool_call(name=call.name, is_error=raw.is_error, duration_s=record.latency_ms / 1000)
     return raw.model_copy(update={"content": filtered.text}), record
 
 

@@ -1,11 +1,12 @@
-# Langfuse (and optionally the API) in Docker. Parameters live in docker/<stack>.env:
+# Observability stack (Langfuse for LLM traces, Grafana LGTM for OpenTelemetry metrics,
+# logs and traces) and optionally the API, in Docker. Parameters live in docker/<stack>.env:
 # docker/local.env runs it on this machine; a copy of docker/remote.env.example runs it
 # on another Docker host over SSH (`make up STACK=<name>`). Makefile targets:
 #   make up      Langfuse (trace UI) only; run the API on the host with `make dev`
 #   make up-api  Langfuse plus the API in a container (needs ANTHROPIC_API_KEY in .env)
 #   make down    stop everything, keep the data     make nuke   also delete the data
 #
-# Only the API and the Langfuse UI are published, on BIND_ADDR. The stores have no host
+# Only the API, the Langfuse and Grafana UIs and the OTLP receiver are published, on BIND_ADDR. The stores have no host
 # ports, so their passwords below are internal to the compose network and ports such as
 # 5432 stay free for whatever the exercise needs.
 name: fde-poc
@@ -65,13 +66,31 @@ services:
       LANGFUSE_HOST: http://langfuse-web:3000
       LANGFUSE_PUBLIC_KEY: ${LANGFUSE_PUBLIC_KEY:-pk-lf-local}
       LANGFUSE_SECRET_KEY: ${LANGFUSE_SECRET_KEY:-sk-lf-local}
+      OTLP_ENDPOINT: http://lgtm:4318
     depends_on:
       - langfuse-web
+      - lgtm
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 10s
       timeout: 3s
       retries: 3
+
+  # Metrics, logs and traces for any OpenTelemetry client, viewed in Grafana (anonymous
+  # admin: it is only reachable on BIND_ADDR). Langfuse is the LLM view of the same traces.
+  lgtm:
+    build: docker/grafana
+    restart: unless-stopped
+    environment:
+      # Loki refuses writes ("Ingester is shutting down") once its disk is over 90% full, to
+      # protect its write-ahead log. Without the WAL, logs that are not yet flushed are lost
+      # if the container dies: acceptable for development, not for production.
+      LOKI_EXTRA_ARGS: -ingester.wal-enabled=false
+    ports:
+      - ${BIND_ADDR:-127.0.0.1}:${GRAFANA_PORT:-3001}:3000
+      - ${BIND_ADDR:-127.0.0.1}:${OTLP_PORT:-4318}:4318
+    volumes:
+      - lgtm_data:/data
 
   langfuse-web:
     image: docker.langfuse.com/langfuse/langfuse:4
@@ -169,3 +188,4 @@ volumes:
   langfuse_clickhouse_logs:
   langfuse_redis:
   langfuse_minio:
+  lgtm_data:

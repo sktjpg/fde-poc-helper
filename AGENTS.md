@@ -11,8 +11,9 @@ make test     # pytest only
 make run      # uvicorn app.main:app --reload  (chat + trace panel at http://localhost:8000,
               # Swagger at /docs; the JSON event log prints in this terminal)
 make eval     # golden dataset against the real model (see "Model access")
-make up       # self-hosted Langfuse in Docker (trace UI); prints its URL and login
-make dev      # make up, then the API on this machine tracing to that Langfuse
+make up       # observability stack in Docker: Langfuse (LLM traces, :3000) and Grafana with
+              # Prometheus, Loki and Tempo (OpenTelemetry metrics, logs, traces, :3001)
+make dev      # make up, then the API on this machine exporting all telemetry to that stack
 make down     # stop the Docker stack, keep its data (make nuke also deletes the data)
 uv add <pkg>  # add a dependency
 ```
@@ -52,7 +53,7 @@ app/
                      databases, HTTP clients
   api/               Inbound adapter: routes and request/response schemas
   evaluation/        Golden dataset, offline eval runner, eval_results/ history
-  observability/     Tracing (OpenTelemetry), JSON event log, cost tracker
+  observability/     OpenTelemetry traces, metrics and logs, JSON event log, cost tracker
 tests/               Mirrors app/. test_architecture.py enforces the layering
 docs/                architecture.md, golden-dataset.md, fde-playbook.md
 brief/               Drop the exercise statement here (PDF, markdown, email)
