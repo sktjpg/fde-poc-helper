@@ -1,9 +1,9 @@
 ---
-description: Explain the code and its design decisions ready to present. Does not modify code
-argument-hint: [file, function or topic; defaults to the last change]
+name: explicame
+description: "Explain code and its design decisions, ready to present, without modifying anything. Use when the user writes \"Explícame\" or asks why something was built this way, what the alternatives and trade-offs are, or which questions to expect."
 ---
 
-Explain: $ARGUMENTS
+Explain what the user named with this command.
 
 If nothing is specified, explain the most recent change (`git diff`, or the last files you
 edited in this session).

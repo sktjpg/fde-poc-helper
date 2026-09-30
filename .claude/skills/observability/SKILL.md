@@ -1,6 +1,6 @@
 ---
 name: observability
-description: Tracing, logging and cost tracking for LLM and agent executions in this codebase - OpenTelemetry spans, exporting to Langfuse or any OTLP backend, the JSON event log, per-run cost. Use when adding a new stage, tool or model call that should be traced, when asked how to debug an agent run, when integrating Langfuse or OpenTelemetry, or when asked about cost or latency.
+description: "Tracing, logging and cost tracking for LLM and agent executions in this codebase - OpenTelemetry spans, exporting to Langfuse or any OTLP backend, the JSON event log, per-run cost. Use when adding a new stage, tool or model call that should be traced, when asked how to debug an agent run, when integrating Langfuse or OpenTelemetry, or when asked about cost or latency."
 ---
 
 # Observability

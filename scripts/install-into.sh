@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Copy the Claude Code configuration (rules, agents, commands, skills) into another
+# Copy the Claude Code and Cursor configuration (rules, agents, skills) into another
 # repository, for when the exercise comes with its own codebase.
 #
 #   scripts/install-into.sh /path/to/their-repo
@@ -36,7 +36,9 @@ copy_if_absent "$source_dir/CLAUDE.md" "$target/CLAUDE.md"
 while IFS= read -r -d '' file; do
   relative="${file#"$source_dir"/}"
   copy_if_absent "$file" "$target/$relative"
-done < <(find "$source_dir/.claude" -type f ! -name 'settings.local.json' -print0)
+done < <(find "$source_dir/.claude" "$source_dir/.cursor" -type f ! -name 'settings.local.json' -print0)
+
+copy_if_absent "$source_dir/.cursorignore" "$target/.cursorignore"
 
 mkdir -p "$target/brief"
 
@@ -55,6 +57,6 @@ fi
 cat <<EOF
 
 Done. Next:
-  cd "$target" && claude
+  cd "$target" && claude        (or open the folder in Cursor)
   then: "Inspect this repository and rewrite AGENTS.md with its real commands and layout."
 EOF

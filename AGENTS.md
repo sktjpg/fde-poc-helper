@@ -43,6 +43,8 @@ app/
 tests/               Mirrors app/. test_architecture.py enforces the layering
 docs/                architecture.md, golden-dataset.md, fde-playbook.md
 brief/               Drop the exercise statement here (PDF, markdown, email)
+.claude/, .cursor/   Agent configuration. .cursor/ is generated: edit CLAUDE.md or .claude/,
+                     then run `make cursor`
 ```
 
 ## Dependency rule

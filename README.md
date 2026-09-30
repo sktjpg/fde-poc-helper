@@ -1,7 +1,7 @@
 # fde-poc-helper
 
-A starting point for building LLM and agent proofs of concept fast, with Claude Code as the
-pair programmer, without giving up the things that make a PoC defensible: tests, bounded
+A starting point for building LLM and agent proofs of concept fast, with Claude Code or
+Cursor as the pair programmer, without giving up the things that make a PoC defensible: tests, bounded
 agent loops, validated tools, guards, tracing, cost and an evaluation set.
 
 It is aimed at forward-deployed engineering work: a customer or reviewer hands you a problem
@@ -9,8 +9,8 @@ It is aimed at forward-deployed engineering work: a customer or reviewer hands y
 
 It has two independent parts:
 
-1. **Claude Code configuration** (`CLAUDE.md`, `AGENTS.md`, `.claude/`): working rules,
-   sub-agents, slash commands and skills for agentic flows, RAG, MCP, LangGraph,
+1. **Agent configuration for Claude Code and Cursor** (`CLAUDE.md`, `AGENTS.md`,
+   `.claude/`, `.cursor/`): working rules, sub-agents, slash commands and skills for agentic flows, RAG, MCP, LangGraph,
    evaluation, security and observability. Reusable in any repository.
 2. **A small backend that already runs** (`app/`, `tests/`): FastAPI, a bounded tool-calling
    agent behind ports and adapters, three guard layers, OpenTelemetry tracing, cost tracking
@@ -51,11 +51,11 @@ curl -s localhost:8000/agent/run -H 'content-type: application/json' \
 The response includes the answer, the tool calls made, token usage, cost, the prompt version
 and a `trace_id`.
 
-## Working with Claude Code
+## Working with Claude Code or Cursor
 
-Open Claude Code in the repository (`claude`). The trigger phrases are in Spanish because
-that is how I work; each one is also a slash command and they are easy to rename in
-`.claude/commands/` and `CLAUDE.md`.
+Open Claude Code in the repository (`claude`), or open the folder in Cursor. The trigger
+phrases are in Spanish because that is how I work; each one is also a slash command (a
+skill under `.claude/skills/`) and they are easy to rename there and in `CLAUDE.md`.
 
 | You type | What happens |
 |---|---|
@@ -75,13 +75,21 @@ If the problem arrives as a document, put it in `brief/` and write
 | | |
 |---|---|
 | `rules/` | Always on: code style, testing, architecture |
-| `skills/` | Loaded on demand: `hexagonal-fastapi`, `agent-tools`, `langgraph-agent`, `rag-pipeline`, `mcp-integration`, `golden-dataset`, `llm-security`, `observability` |
+| `skills/` | Knowledge, loaded on demand: `hexagonal-fastapi`, `agent-tools`, `langgraph-agent`, `rag-pipeline`, `mcp-integration`, `golden-dataset`, `llm-security`, `observability`. Commands: the seven in the table above |
 | `agents/` | `solution-architect`, `agentic-reviewer`, `eval-engineer`, `production-auditor`, `design-explainer` |
-| `commands/` | The commands in the table above |
 | `settings.json` | Tests, lint and type checks run without prompting; reading `.env` is denied |
 
 The skills for LangGraph and MCP include small runnable examples that are verified against
 the installed versions.
+
+### Cursor
+
+Cursor reads `AGENTS.md`, `.claude/skills/` and `.claude/agents/` on its own. The two
+things it does not read, `CLAUDE.md` and `.claude/rules/`, are generated into
+`.cursor/rules/`, together with Cursor-flavoured copies of the sub-agents in
+`.cursor/agents/`. After editing `CLAUDE.md` or anything under `.claude/rules` or
+`.claude/agents`, run `make cursor`; `make check` fails if `.cursor/` is out of date.
+`.cursorignore` keeps `.env` away from the agent.
 
 ### Using the configuration in another repository
 
@@ -89,7 +97,7 @@ the installed versions.
 scripts/install-into.sh /path/to/other-repo
 ```
 
-Copies `CLAUDE.md` and `.claude/` without overwriting anything, and creates a stub
+Copies `CLAUDE.md`, `.claude/` and `.cursor/` without overwriting anything, and creates a stub
 `AGENTS.md` telling Claude to follow what already exists in that repository.
 
 ## The backend

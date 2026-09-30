@@ -1,6 +1,6 @@
 ---
 name: mcp-integration
-description: How to work with the Model Context Protocol in this codebase - exposing a capability as an MCP server, and letting the agent use tools from an MCP server safely. Use when a requirement mentions MCP, connecting to an existing MCP server, exposing internal tools to other agents or assistants, or choosing between an MCP tool and a plain function tool.
+description: "How to work with the Model Context Protocol in this codebase - exposing a capability as an MCP server, and letting the agent use tools from an MCP server safely. Use when a requirement mentions MCP, connecting to an existing MCP server, exposing internal tools to other agents or assistants, or choosing between an MCP tool and a plain function tool."
 ---
 
 # MCP integration

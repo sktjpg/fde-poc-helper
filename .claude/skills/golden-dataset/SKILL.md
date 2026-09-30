@@ -1,6 +1,6 @@
 ---
 name: golden-dataset
-description: How to define, extend and run the golden evaluation dataset for the agent, and how to read the results. Use when adding or changing agent behaviour, when asked how we know the agent works, when a bug is found (add a regression case), when choosing metrics, or when asked to build or improve evals.
+description: "How to define, extend and run the golden evaluation dataset for the agent, and how to read the results. Use when adding or changing agent behaviour, when asked how we know the agent works, when a bug is found (add a regression case), when choosing metrics, or when asked to build or improve evals."
 ---
 
 # Golden dataset

@@ -1,9 +1,9 @@
 ---
-description: Code review of the current change, real problems first
-argument-hint: [file or area; defaults to the uncommitted changes]
+name: revisa
+description: "Review the current change for real defects before showing it to anyone. Use when the user writes \"Revisa\" or asks for a code review: correctness, unbounded loops, LLM failure modes, prompt injection, validation, tests."
 ---
 
-Review: $ARGUMENTS
+Review what the user named with this command.
 
 If nothing is specified, review the uncommitted changes (`git diff` and `git diff --staged`).
 

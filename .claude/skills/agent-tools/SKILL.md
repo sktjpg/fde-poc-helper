@@ -1,6 +1,6 @@
 ---
 name: agent-tools
-description: How to add or change a tool the agent can call, control when the agent uses it, add structured output, or change the agent loop in this codebase. Use for requirements like "add a tool that checks X", "make the agent use it only when Y", "return a structured result", "add retries" or "add an approval step".
+description: "How to add or change a tool the agent can call, control when the agent uses it, add structured output, or change the agent loop in this codebase. Use for requirements like \"add a tool that checks X\", \"make the agent use it only when Y\", \"return a structured result\", \"add retries\" or \"add an approval step\"."
 ---
 
 # Agent tools and loop

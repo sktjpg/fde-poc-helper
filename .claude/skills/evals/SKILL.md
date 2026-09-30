@@ -1,9 +1,9 @@
 ---
-description: Add golden-dataset cases for a behaviour, or run and interpret the evals
-argument-hint: <behaviour to cover | "run">
+name: evals
+description: "Add golden-dataset cases for a behaviour, or run and interpret the evals. Use when the user invokes /evals, asks to cover a behaviour with evaluation cases, or asks to run the evals."
 ---
 
-Evaluation task: $ARGUMENTS
+The evaluation task is whatever the user wrote with this command: a behaviour to cover, or `run`.
 
 Load the `golden-dataset` skill.
 

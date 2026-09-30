@@ -1,6 +1,6 @@
 ---
 name: rag-pipeline
-description: How to add retrieval-augmented generation to this codebase - ingestion, chunking, hybrid retrieval (BM25 plus vectors), reranking, grounded answers with citations, and retrieval evaluation. Use when a requirement involves answering from documents, a knowledge base, PDFs, search, embeddings or citations.
+description: "How to add retrieval-augmented generation to this codebase - ingestion, chunking, hybrid retrieval (BM25 plus vectors), reranking, grounded answers with citations, and retrieval evaluation. Use when a requirement involves answering from documents, a knowledge base, PDFs, search, embeddings or citations."
 ---
 
 # RAG pipeline

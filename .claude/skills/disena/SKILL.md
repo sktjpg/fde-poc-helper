@@ -1,11 +1,9 @@
 ---
-description: Scope an open-ended or customer-shaped requirement into a design before coding
-argument-hint: <the problem, or a path under brief/>
+name: disena
+description: "Scope an open-ended or customer-shaped problem into a design before any code. Use when the user writes \"Diseña: ...\" or hands over a business problem or brief that needs scoping: deterministic vs LLM split, components, first slice, risks, how to prove it works."
 ---
 
-Scope this before any code is written:
-
-$ARGUMENTS
+The problem to scope is whatever the user wrote with this command or after "Diseña:".
 
 If it names a file (for example under `brief/`), that file is the statement.
 

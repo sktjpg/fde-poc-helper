@@ -1,6 +1,6 @@
 ---
 name: llm-security
-description: Security for LLM and agent features in this codebase - prompt injection, the three guard layers (input, content, output), tool permissions, human approval for consequential actions, secrets and safe logging. Use when adding tools with side effects, handling untrusted content (documents, web pages, emails, tool or RAG results), exposing a new endpoint, or when asked about prompt injection or guardrails.
+description: "Security for LLM and agent features in this codebase - prompt injection, the three guard layers (input, content, output), tool permissions, human approval for consequential actions, secrets and safe logging. Use when adding tools with side effects, handling untrusted content (documents, web pages, emails, tool or RAG results), exposing a new endpoint, or when asked about prompt injection or guardrails."
 ---
 
 # LLM security

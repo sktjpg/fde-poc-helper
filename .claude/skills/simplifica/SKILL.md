@@ -1,9 +1,9 @@
 ---
-description: Reduce complexity while preserving behaviour, so the code is easy to explain live
-argument-hint: [file or area; defaults to the last change]
+name: simplifica
+description: "Reduce complexity while preserving behaviour so the code is easy to explain. Use when the user writes \"Simplifica\" or says the solution is over-engineered."
 ---
 
-Simplify: $ARGUMENTS
+Simplify what the user named with this command.
 
 If nothing is specified, target the most recent change.
 

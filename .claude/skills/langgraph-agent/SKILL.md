@@ -1,6 +1,6 @@
 ---
 name: langgraph-agent
-description: When and how to use LangGraph in this codebase - explicit state graphs, branching, cycles, checkpointing and human-in-the-loop approval. Use when a requirement mentions LangGraph, multi-step workflows with branches, pausing for human approval, resumable runs, or when deciding between the plain agent loop and a graph.
+description: "When and how to use LangGraph in this codebase - explicit state graphs, branching, cycles, checkpointing and human-in-the-loop approval. Use when a requirement mentions LangGraph, multi-step workflows with branches, pausing for human approval, resumable runs, or when deciding between the plain agent loop and a graph."
 ---
 
 # LangGraph: use it or not

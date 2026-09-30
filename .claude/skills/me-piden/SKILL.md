@@ -1,11 +1,9 @@
 ---
-description: New requirement - analyse, implement the smallest correct solution, test, explain
-argument-hint: <the requirement, or a path under brief/>
+name: me-piden
+description: "Implement a new requirement end to end. Use when the user writes \"Me piden esto: ...\" or gives a requirement (possibly a file under brief/) to build: analyse it, state the approach briefly, implement the smallest correct solution, add tests, run make check and explain the decision."
 ---
 
-New requirement:
-
-$ARGUMENTS
+The new requirement is whatever the user wrote with this command or after "Me piden esto:".
 
 If it names a file (for example under `brief/`), read that file first: it is the statement.
 

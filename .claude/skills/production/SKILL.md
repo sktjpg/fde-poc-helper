@@ -1,9 +1,9 @@
 ---
-description: Production-readiness review - highest-impact gaps first, nothing implemented automatically
-argument-hint: [area to focus on; defaults to the whole request path]
+name: production
+description: "Production-readiness review: the highest-impact gaps first, nothing implemented automatically. Use when the user writes \"Production\" or asks what is missing to ship, scale or operate the current solution."
 ---
 
-Review the current solution as if it were going to production. Focus: $ARGUMENTS
+Review the current solution as if it were going to production. If the user named an area with this command, focus on it.
 
 Use the `production-auditor` sub-agent for an independent assessment of the code as it is.
 

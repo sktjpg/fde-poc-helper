@@ -1,6 +1,6 @@
 ---
 name: hexagonal-fastapi
-description: How to add endpoints, use cases, ports and adapters in this FastAPI codebase while keeping the hexagonal dependency rule. Use when adding or changing an endpoint, a service, an external integration (HTTP API, database, LLM provider), or when deciding which layer a piece of code belongs to.
+description: "How to add endpoints, use cases, ports and adapters in this FastAPI codebase while keeping the hexagonal dependency rule. Use when adding or changing an endpoint, a service, an external integration (HTTP API, database, LLM provider), or when deciding which layer a piece of code belongs to."
 ---
 
 # Hexagonal FastAPI
