@@ -10,3 +10,8 @@ htmlcov/
 dist/
 .DS_Store
 .claude/settings.local.json
+
+# Parameters of Docker stacks on other machines (hosts and credentials). Only the local
+# stack and the template are committed.
+docker/*.env
+!docker/local.env

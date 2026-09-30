@@ -1,15 +1,17 @@
-# Local stack. Parameters live in docker/local.env; use the Makefile targets:
+# Langfuse (and optionally the API) in Docker. Parameters live in docker/<stack>.env:
+# docker/local.env runs it on this machine; a copy of docker/remote.env.example runs it
+# on another Docker host over SSH (`make up STACK=<name>`). Makefile targets:
 #   make up      Langfuse (trace UI) only; run the API on the host with `make dev`
 #   make up-api  Langfuse plus the API in a container (needs ANTHROPIC_API_KEY in .env)
 #   make down    stop everything, keep the data     make nuke   also delete the data
 #
-# Only the API and the Langfuse UI are published, on 127.0.0.1. The stores have no host
+# Only the API and the Langfuse UI are published, on BIND_ADDR. The stores have no host
 # ports, so their passwords below are internal to the compose network and ports such as
 # 5432 stay free for whatever the exercise needs.
 name: fde-poc
 
 x-langfuse-env: &langfuse-env
-  NEXTAUTH_URL: http://localhost:${LANGFUSE_PORT:-3000}
+  NEXTAUTH_URL: ${LANGFUSE_HOST:-http://localhost:3000}
   NEXTAUTH_SECRET: local-only-nextauth-secret
   SALT: local-only-salt
   ENCRYPTION_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
@@ -53,7 +55,7 @@ services:
     profiles: [api]
     build: .
     ports:
-      - 127.0.0.1:${APP_PORT:-8000}:8000
+      - ${BIND_ADDR:-127.0.0.1}:${APP_PORT:-8000}:8000
     env_file:
       - path: .env
         required: false
@@ -76,7 +78,7 @@ services:
     restart: unless-stopped
     depends_on: *langfuse-depends-on
     ports:
-      - 127.0.0.1:${LANGFUSE_PORT:-3000}:3000
+      - ${BIND_ADDR:-127.0.0.1}:${LANGFUSE_PORT:-3000}:3000
     environment:
       <<: *langfuse-env
       # Headless setup: the organisation, project, API keys and login exist from first start.

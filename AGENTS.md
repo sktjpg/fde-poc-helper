@@ -11,10 +11,18 @@ make test     # pytest only
 make run      # uvicorn app.main:app --reload  (chat + trace panel at http://localhost:8000,
               # Swagger at /docs; the JSON event log prints in this terminal)
 make eval     # golden dataset against the real model (see "Model access")
+make up       # self-hosted Langfuse in Docker (trace UI); prints its URL and login
+make dev      # make up, then the API on this machine tracing to that Langfuse
+make down     # stop the Docker stack, keep its data (make nuke also deletes the data)
 uv add <pkg>  # add a dependency
 ```
 
 Python 3.12, managed with `uv`.
+
+Docker stack: its parameters (where Docker runs, ports, Langfuse credentials) are in
+`docker/<stack>.env`. The default is `docker/local.env`, on this machine. To run it on
+another Docker host over SSH, copy `docker/remote.env.example` to `docker/<name>.env` (not
+committed) and add `STACK=<name>` to the targets, e.g. `make dev STACK=gmktec`.
 
 Model access: `LLM_PROVIDER=anthropic` (default) calls the API and needs
 `ANTHROPIC_API_KEY`. `LLM_PROVIDER=claude_code` runs the local Claude Code CLI headless and
@@ -44,6 +52,7 @@ app/
 tests/               Mirrors app/. test_architecture.py enforces the layering
 docs/                architecture.md, golden-dataset.md, fde-playbook.md
 brief/               Drop the exercise statement here (PDF, markdown, email)
+docker/              Parameters of the Docker stack in docker-compose.yml, one file per stack
 .claude/, .cursor/   Agent configuration. .cursor/ is generated: edit CLAUDE.md or .claude/,
                      then run `make cursor`
 ```
